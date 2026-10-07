@@ -101,3 +101,10 @@ When proposing a significant change, explain:
 When there is no meaningful problem with the existing implementation, say so instead of inventing improvements.
 
 Prefer pragmatic, production-ready engineering over theoretical perfection.
+
+## Git
+
+- Never change remote state: no `push` (including force), no creating, deleting, or editing remote branches, tags, pull requests, or issues, and no changing remotes.
+- Never create a commit (or amend one) without telling the user first and getting their go-ahead.
+- Local changes that do not publish anything are fine without asking: editing files, `add`, `checkout`/`switch`, creating local branches, `stash`, and read-only commands such as `status`, `diff`, `log`, and `show`.
+- Avoid destructive local operations (`reset --hard`, `clean`, discarding uncommitted work) unless the user asks for them.
