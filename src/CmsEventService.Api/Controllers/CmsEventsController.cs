@@ -1,11 +1,14 @@
 using System.Text.Json;
 using CmsEventService.Api.Application;
+using CmsEventService.Api.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CmsEventService.Api.Controllers;
 
 [ApiController]
 [Route("cms/events")]
+[Authorize(Policy = Policies.CmsIngestion)]
 public class CmsEventsController(CmsEventProcessor processor) : ControllerBase
 {
     public const int MaxBatchSize = 1000;
@@ -21,6 +24,8 @@ public class CmsEventsController(CmsEventProcessor processor) : ControllerBase
     [RequestSizeLimit(MaxRequestBytes)]
     [ProducesResponseType<BatchResult>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Post([FromBody] List<JsonElement> events, CancellationToken ct)
     {
         if (events.Count == 0)
