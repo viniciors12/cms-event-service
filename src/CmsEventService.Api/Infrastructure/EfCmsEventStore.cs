@@ -1,10 +1,16 @@
 using CmsEventService.Api.Application;
 using CmsEventService.Api.Domain;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CmsEventService.Api.Infrastructure;
 
-public sealed class EfCmsEventStore(AppDbContext db) : ICmsEventStore
+public sealed class EfCmsEventStore(WriteDbContext db) : ICmsEventStore
 {
+    // Inside this transaction EF Core wraps every SaveChanges in a savepoint and rolls back only that
+    // one when it fails, which keeps each event isolated while the batch shares a single commit.
+    public async Task<IBatchScope> BeginBatchAsync(CancellationToken ct) =>
+        new EfBatchScope(await db.Database.BeginTransactionAsync(ct));
+
     public async Task<CmsEntity?> FindEntityAsync(string id, CancellationToken ct) =>
         await db.Entities.FindAsync([id], ct);
 
@@ -19,7 +25,18 @@ public sealed class EfCmsEventStore(AppDbContext db) : ICmsEventStore
 
     public void RemoveTombstone(DeletedEntity tombstone) => db.DeletedEntities.Remove(tombstone);
 
-    public Task SaveChangesAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
+    public async Task SaveChangesAsync(CancellationToken ct)
+    {
+        await db.SaveChangesAsync(ct);
+        db.ChangeTracker.Clear();
+    }
 
     public void DiscardChanges() => db.ChangeTracker.Clear();
+
+    private sealed class EfBatchScope(IDbContextTransaction transaction) : IBatchScope
+    {
+        public Task CommitAsync(CancellationToken ct) => transaction.CommitAsync(ct);
+
+        public ValueTask DisposeAsync() => transaction.DisposeAsync();
+    }
 }

@@ -42,9 +42,14 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.Consumers, p => p.RequireRole(Roles.User, Roles.Admin))
     .AddPolicy(Policies.AdminOnly, p => p.RequireRole(Roles.Admin));
 
-var connectionString = builder.Configuration.GetConnectionString("Default")
+var writeConnection = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
-builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(connectionString));
+// Reads may use a separate (read-only or replica) connection; without one they share the writer's database.
+var readConnection = builder.Configuration.GetConnectionString("ReadOnly") ?? writeConnection;
+builder.Services.AddDbContext<WriteDbContext>(o => o.UseSqlite(writeConnection));
+builder.Services.AddDbContext<ReadDbContext>(o => o
+    .UseSqlite(readConnection)
+    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<ICmsEventStore, EfCmsEventStore>();
 builder.Services.AddScoped<CmsEventProcessor>();
@@ -55,10 +60,16 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
+    scope.ServiceProvider.GetRequiredService<WriteDbContext>().Database.EnsureCreated();
 }
 
 // Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    // Unhandled errors become a generic problem-details 500; internals are never sent to the client.
+    app.UseExceptionHandler();
+}
+
 if (app.Environment.IsDevelopment())
 {
     // The document describes the API only (no data), and Swagger UI must be able to fetch it.

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using CmsEventService.Api.Domain;
 
@@ -12,16 +13,24 @@ public sealed class CmsEventProcessor(ICmsEventStore store, TimeProvider clock, 
 {
     public async Task<BatchResult> ProcessBatchAsync(IReadOnlyList<JsonElement> events, CancellationToken ct = default)
     {
+        var started = Stopwatch.GetTimestamp();
         var results = new List<EventResult>(events.Count);
+
+        // One commit for the whole batch: committing per event made a 1000-event batch take seconds.
+        // Each event is still isolated, because a failing save is undone on its own (see the store).
+        await using var scope = await store.BeginBatchAsync(ct);
 
         for (var i = 0; i < events.Count; i++)
         {
             results.Add(await ProcessOneAsync(i, events[i], ct));
         }
 
+        await scope.CommitAsync(ct);
+
         var batch = new BatchResult(results);
         logger.LogInformation(
-            "Batch processed: {Total} events, {Applied} applied, {Ignored} ignored, {Rejected} rejected, {Failed} failed",
+            "Batch processed in {ElapsedMs:F0} ms: {Total} events, {Applied} applied, {Ignored} ignored, {Rejected} rejected, {Failed} failed",
+            Stopwatch.GetElapsedTime(started).TotalMilliseconds,
             batch.Total, batch.Applied, batch.Ignored, batch.Rejected, batch.Failed);
 
         return batch;

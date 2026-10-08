@@ -27,7 +27,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // appsettings.json points reads at cms.db, so the read connection must be overridden too.
         builder.UseSetting("ConnectionStrings:Default", $"Data Source={_database}");
+        builder.UseSetting("ConnectionStrings:ReadOnly", $"Data Source={_database}");
         builder.UseSetting("Auth:Cms:Username", CmsUser);
         builder.UseSetting("Auth:Cms:Password", CmsPassword);
         builder.UseSetting("Auth:Users:0:Username", AdminUser);

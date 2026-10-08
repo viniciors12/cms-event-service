@@ -12,13 +12,13 @@ namespace CmsEventService.Tests.Integration;
 public sealed class EventProcessingTests : IDisposable
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
-    private readonly AppDbContext _db;
+    private readonly WriteDbContext _db;
     private readonly CmsEventProcessor _processor;
 
     public EventProcessingTests()
     {
         _connection.Open();
-        _db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_connection).Options);
+        _db = new WriteDbContext(new DbContextOptionsBuilder<WriteDbContext>().UseSqlite(_connection).Options);
         _db.Database.EnsureCreated();
         _processor = new CmsEventProcessor(new EfCmsEventStore(_db), TimeProvider.System, NullLogger<CmsEventProcessor>.Instance);
     }
@@ -261,47 +261,20 @@ public sealed class EventProcessingTests : IDisposable
     }
 
     [Fact]
-    public async Task Failing_event_is_reported_and_does_not_affect_the_rest_of_the_batch()
+    public async Task Event_that_fails_in_the_database_is_reported_and_the_rest_of_the_batch_still_commits()
     {
-        var processor = new CmsEventProcessor(
-            new FailingOnceStore(new EfCmsEventStore(_db)), TimeProvider.System, NullLogger<CmsEventProcessor>.Instance);
-        var elements = new[] { Publish("A", 1, "2024-01-01T00:00:00Z"), Publish("B", 1, "2024-01-01T00:00:00Z") }
-            .Select(e => JsonDocument.Parse(e).RootElement.Clone()).ToList();
+        // A real database error for one specific entity, raised by the database itself.
+        await _db.Database.ExecuteSqlRawAsync(
+            "CREATE TRIGGER reject_boom BEFORE INSERT ON Entities WHEN NEW.Id = 'boom' BEGIN SELECT RAISE(ABORT, 'rejected by trigger'); END;");
 
-        var batch = await processor.ProcessBatchAsync(elements);
-        _db.ChangeTracker.Clear();
+        var results = await Send(
+            Publish("A", 1, "2024-01-01T00:00:00Z"),
+            Publish("boom", 1, "2024-01-01T00:00:00Z"),
+            Publish("C", 1, "2024-01-01T00:00:00Z"));
 
-        Assert.Equal([EventOutcome.Failed, EventOutcome.Applied], batch.Results.Select(r => r.Outcome));
-        Assert.Null(await Stored("A"));
-        Assert.NotNull(await Stored("B"));
-    }
-
-    /// <summary>Wraps the real store and fails the first save, as a transient database error would.</summary>
-    private sealed class FailingOnceStore(ICmsEventStore inner) : ICmsEventStore
-    {
-        private bool _failed;
-
-        public Task<CmsEntity?> FindEntityAsync(string id, CancellationToken ct) => inner.FindEntityAsync(id, ct);
-
-        public Task<DeletedEntity?> FindTombstoneAsync(string id, CancellationToken ct) => inner.FindTombstoneAsync(id, ct);
-
-        public void AddEntity(CmsEntity entity) => inner.AddEntity(entity);
-
-        public void RemoveEntity(CmsEntity entity) => inner.RemoveEntity(entity);
-
-        public void AddTombstone(DeletedEntity tombstone) => inner.AddTombstone(tombstone);
-
-        public void RemoveTombstone(DeletedEntity tombstone) => inner.RemoveTombstone(tombstone);
-
-        public void DiscardChanges() => inner.DiscardChanges();
-
-        public Task SaveChangesAsync(CancellationToken ct)
-        {
-            if (_failed)
-                return inner.SaveChangesAsync(ct);
-
-            _failed = true;
-            throw new InvalidOperationException("simulated database failure");
-        }
+        Assert.Equal([EventOutcome.Applied, EventOutcome.Failed, EventOutcome.Applied], results.Select(r => r.Outcome));
+        Assert.NotNull(await Stored("A"));
+        Assert.Null(await Stored("boom"));
+        Assert.NotNull(await Stored("C"));
     }
 }
