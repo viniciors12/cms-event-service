@@ -13,7 +13,6 @@ public sealed class CmsEventProcessor(ICmsEventStore store, TimeProvider clock, 
 {
     public async Task<BatchResult> ProcessBatchAsync(IReadOnlyList<JsonElement> events, CancellationToken ct = default)
     {
-        var started = Stopwatch.GetTimestamp();
         var results = new List<EventResult>(events.Count);
 
         // One commit for the whole batch: committing per event made a 1000-event batch take seconds.
@@ -29,10 +28,8 @@ public sealed class CmsEventProcessor(ICmsEventStore store, TimeProvider clock, 
 
         var batch = new BatchResult(results);
         logger.LogInformation(
-            "Batch processed in {ElapsedMs:F0} ms: {Total} events, {Applied} applied, {Ignored} ignored, {Rejected} rejected, {Failed} failed",
-            Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+            "Batch processed: {Total} events, {Applied} applied, {Ignored} ignored, {Rejected} rejected, {Failed} failed",
             batch.Total, batch.Applied, batch.Ignored, batch.Rejected, batch.Failed);
-
         return batch;
     }
 
