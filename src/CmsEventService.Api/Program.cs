@@ -38,7 +38,9 @@ builder.Services.AddAuthentication(BasicAuthenticationHandler.SchemeName)
 builder.Services.AddAuthorizationBuilder()
     // Everything is confidential: endpoints without an explicit policy still require a signed-in user.
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
-    .AddPolicy(Policies.CmsIngestion, p => p.RequireRole(Roles.Cms));
+    .AddPolicy(Policies.CmsIngestion, p => p.RequireRole(Roles.Cms))
+    .AddPolicy(Policies.Consumers, p => p.RequireRole(Roles.User, Roles.Admin))
+    .AddPolicy(Policies.AdminOnly, p => p.RequireRole(Roles.Admin));
 
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
@@ -46,6 +48,8 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(connectionString));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<ICmsEventStore, EfCmsEventStore>();
 builder.Services.AddScoped<CmsEventProcessor>();
+builder.Services.AddScoped<IEntityReader, EfEntityReader>();
+builder.Services.AddScoped<EntityAdminService>();
 
 var app = builder.Build();
 

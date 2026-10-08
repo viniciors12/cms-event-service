@@ -56,6 +56,19 @@ public class CmsEntityTests
         Assert.True(entity.IsDisabledByAdmin);
     }
 
+    [Theory]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    public void Users_only_see_entities_that_are_published_and_not_disabled(bool published, bool disabled, bool visible)
+    {
+        var entity = Stored(1, T1, published);
+        entity.SetDisabledByAdmin(disabled);
+
+        Assert.Equal(visible, CmsEntity.IsVisibleToUsers.Compile()(entity));
+    }
+
     [Fact]
     public void Tombstone_covers_events_that_are_not_newer_than_the_delete()
     {

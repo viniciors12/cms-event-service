@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+
 namespace CmsEventService.Api.Domain;
 
 /// <summary>
@@ -18,6 +20,13 @@ public class CmsEntity
         LastEventTimestamp = eventTimestamp;
         UpdatedAt = now;
     }
+
+    /// <summary>
+    /// What regular users may see: published by the CMS and not disabled by an admin.
+    /// An expression so database queries can filter with it directly.
+    /// </summary>
+    public static readonly Expression<Func<CmsEntity, bool>> IsVisibleToUsers =
+        e => e.IsPublished && !e.IsDisabledByAdmin;
 
     public string Id { get; private set; } = null!;
 
