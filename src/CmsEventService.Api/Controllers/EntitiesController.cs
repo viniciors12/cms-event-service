@@ -24,6 +24,9 @@ public class EntitiesController(IEntityReader reader, EntityAdminService admin) 
     private bool CanSeeHidden => User.IsInRole(Roles.Admin);
 
     [HttpGet]
+    [EndpointSummary("List entities")]
+    [EndpointDescription("Paged list ordered by id. Users see published, enabled entities; admins also see unpublished " +
+        "and disabled ones. page starts at 1; pageSize is 1-100.")]
     [ProducesResponseType<PagedResult<EntityResponse>>(StatusCodes.Status200OK)]
     public async Task<PagedResult<EntityResponse>> List(
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
@@ -35,6 +38,8 @@ public class EntitiesController(IEntityReader reader, EntityAdminService admin) 
     }
 
     [HttpGet("{id}")]
+    [EndpointSummary("Get one entity")]
+    [EndpointDescription("Hidden entities are reported as 404 to regular users so their existence is not revealed.")]
     [ProducesResponseType<EntityResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<EntityResponse>> Get(string id, CancellationToken ct)
@@ -46,6 +51,8 @@ public class EntitiesController(IEntityReader reader, EntityAdminService admin) 
 
     /// <summary>Hides the entity from regular users. Local override only: the CMS is not affected.</summary>
     [HttpPost("{id}/disable")]
+    [EndpointSummary("Disable an entity (admin)")]
+    [EndpointDescription("Hides the entity from regular users. A local override only: CMS data is not changed and later CMS events do not undo it.")]
     [Authorize(Policy = Policies.AdminOnly)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -53,6 +60,8 @@ public class EntitiesController(IEntityReader reader, EntityAdminService admin) 
 
     /// <summary>Reverts <see cref="Disable"/>. Whether the entity is visible still depends on the CMS publication state.</summary>
     [HttpPost("{id}/enable")]
+    [EndpointSummary("Enable an entity (admin)")]
+    [EndpointDescription("Reverts a disable. Whether regular users see the entity still depends on whether the CMS has it published.")]
     [Authorize(Policy = Policies.AdminOnly)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

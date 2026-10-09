@@ -21,6 +21,10 @@ public class CmsEventsController(CmsEventProcessor processor) : ControllerBase
     /// can partially succeed; 400 (problem details) only when the request itself is unusable.
     /// </summary>
     [HttpPost]
+    [EndpointSummary("Ingest a batch of CMS events")]
+    [EndpointDescription("Accepts up to 1000 events (publish, add, update, unPublish, delete). Each event is validated and " +
+        "applied on its own: the response lists the outcome of every event (Applied, Ignored as obsolete, Rejected as invalid, " +
+        "or Failed). Reserved for the CMS account.")]
     [RequestSizeLimit(MaxRequestBytes)]
     [ProducesResponseType<BatchResult>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]

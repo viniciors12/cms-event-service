@@ -12,7 +12,10 @@ public static partial class EventValidator
 {
     public const int MaxPayloadLength = 256 * 1024;
 
-    [GeneratedRegex("^[A-Za-z0-9._:-]{1,100}$")]
+    /// <summary>Allowed entity ids. Also published in the OpenAPI document.</summary>
+    public const string IdRegex = "^[A-Za-z0-9._:-]{1,100}$";
+
+    [GeneratedRegex(IdRegex)]
     private static partial Regex IdPattern();
 
     public static bool TryParse(JsonElement raw, out ParsedEvent? parsed, out string? error)

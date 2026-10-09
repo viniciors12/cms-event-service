@@ -2,11 +2,11 @@ using System.Text.Json.Serialization;
 using CmsEventService.Api.Application;
 using CmsEventService.Api.Auth;
 using CmsEventService.Api.Infrastructure;
+using CmsEventService.Api.OpenApi;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,21 +14,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddProblemDetails();
 
-builder.Services.AddOpenApi(o => o.AddDocumentTransformer((document, _, _) =>
-{
-    // Lets Swagger UI offer the "Authorize" button; every endpoint requires Basic credentials.
-    var basic = new OpenApiSecurityScheme { Type = SecuritySchemeType.Http, Scheme = "basic" };
-    document.Components ??= new OpenApiComponents();
-    document.Components.SecuritySchemes[BasicAuthenticationHandler.SchemeName] = basic;
-    document.SecurityRequirements.Add(new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecurityScheme
-        {
-            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = BasicAuthenticationHandler.SchemeName }
-        }] = []
-    });
-    return Task.CompletedTask;
-}));
+builder.Services.AddOpenApi(o => o.AddDocumentTransformer<ApiDocumentTransformer>());
 
 builder.Services.AddOptions<AuthOptions>().BindConfiguration(AuthOptions.SectionName).ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<AuthOptions>, AuthOptionsValidator>();
