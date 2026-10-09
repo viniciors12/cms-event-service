@@ -20,9 +20,10 @@ public sealed class CmsEventProcessor(ICmsEventStore store, TimeProvider clock, 
         // Each event is still isolated, because a failing save is undone on its own (see the store).
         await using var scope = await store.BeginBatchAsync(ct);
 
+        var receivedAt = clock.GetUtcNow();
         for (var i = 0; i < events.Count; i++)
         {
-            results.Add(await ProcessOneAsync(i, events[i], ct));
+            results.Add(await ProcessOneAsync(i, events[i], receivedAt, ct));
         }
 
         await scope.CommitAsync(ct);
@@ -34,9 +35,9 @@ public sealed class CmsEventProcessor(ICmsEventStore store, TimeProvider clock, 
         return batch;
     }
 
-    private async Task<EventResult> ProcessOneAsync(int index, JsonElement raw, CancellationToken ct)
+    private async Task<EventResult> ProcessOneAsync(int index, JsonElement raw, DateTimeOffset receivedAt, CancellationToken ct)
     {
-        if (!EventValidator.TryParse(raw, out var ev, out var error))
+        if (!EventValidator.TryParse(raw, receivedAt, out var ev, out var error))
         {
             logger.LogWarning("Event {Index} rejected: {Reason}", index, error);
             return new EventResult(index, ReadString(raw, "id"), ReadString(raw, "type"), EventOutcome.Rejected, error);

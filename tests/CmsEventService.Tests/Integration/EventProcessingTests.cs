@@ -203,14 +203,24 @@ public sealed class EventProcessingTests : IDisposable
     public async Task Admin_disable_survives_later_cms_events()
     {
         await Send(Publish("A", 1, "2024-01-01T00:00:00Z"));
-        var entity = await _db.Entities.FindAsync("A");
-        entity!.SetDisabledByAdmin(true);
-        await _db.SaveChangesAsync();
-        _db.ChangeTracker.Clear();
+        await new EfCmsEventStore(_db).SetDisabledByAdminAsync("A", true, CancellationToken.None);
 
         await Send(Publish("A", 2, "2024-01-02T00:00:00Z"));
 
         Assert.True((await Stored("A"))!.IsDisabledByAdmin);
+    }
+
+    [Fact]
+    public async Task Event_with_a_future_timestamp_is_rejected_and_does_not_block_later_events()
+    {
+        var future = DateTimeOffset.UtcNow.AddYears(1).ToString("O");
+
+        var results = await Send(
+            Publish("A", 1, future),
+            Publish("A", 1, "2024-01-01T00:00:00Z"));
+
+        Assert.Equal([EventOutcome.Rejected, EventOutcome.Applied], results.Select(r => r.Outcome));
+        Assert.Equal(new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero), (await Stored("A"))!.LastEventTimestamp);
     }
 
     [Fact]

@@ -101,7 +101,8 @@ with escaped quotes instead of the multi-line commands above.
 - **Visibility.** Regular users see entities that are published and not disabled. Admins see everything, from the
   same endpoints. A hidden entity is a **404** for regular users, so its existence is not revealed.
 - **Read-only for everyone.** No role can edit entity data. The admin override only sets a flag in this service; it
-  never changes what the CMS sent, and later CMS events do not undo it.
+  never changes what the CMS sent, and later CMS events do not undo it. A CMS `delete` does remove it with the rest
+  of the entity, so an entity re-created after a delete starts enabled.
 - **Errors.** 400, 401, 403, 404 and 500 are returned as RFC 9457 problem details. Unhandled errors outside
   Development are a generic 500 that does not expose internals.
 - Every endpoint requires authentication (a fallback policy), including any added later. A wrong role is a 403.
@@ -125,13 +126,17 @@ Versions only move forward, so duplicates and out-of-order delivery are safe:
   the service never saw it. Because `unPublish` carries the payload, it is stored as is: stored v1 + `unPublish` v2
   results in v2, hidden. It does **not** fall back to v1. The same happens when the entity does not exist yet.
 - **Re-publishing.** A `publish` of the same version with a newer timestamp makes an unpublished entity visible again.
+- **Version wins over timestamp.** An `unPublish` of a version older than the stored one is ignored even if its
+  timestamp is newer: the CMS always unpublishes its current version, so such an event cannot be the latest state.
 - **Delete and tombstones.** Deleting removes all entity data, but a small tombstone (id + delete timestamp) is kept so
   that a late `publish` older than the delete cannot bring the entity back. A `publish` newer than the delete is a
   genuine re-creation and clears the tombstone. A `delete` older than the stored state is ignored.
 
-**Validation** (per event): known type; `id` of 1-100 characters from `A-Z a-z 0-9 . _ : -`; ISO-8601 `timestamp`;
-integer `version` >= 1 and a JSON-object `payload` of at most 256 K characters for everything except `delete`. Ids are
-trimmed. An invalid event is rejected on its own and does not fail the batch.
+**Validation** (per event): known type; `id` of 1-100 characters from `A-Z a-z 0-9 . _ : -`; strict ISO-8601
+`timestamp` (UTC when it has no offset) no more than 5 minutes ahead of the server clock; integer `version` >= 1 and a
+JSON-object `payload` of at most 256 K characters for everything except `delete`. Ids are trimmed. An invalid event is
+rejected on its own and does not fail the batch. Future timestamps are rejected because ordering relies on them: a
+single event dated years ahead would make every later event for that entity look stale and freeze it for good.
 
 ## Design decisions and trade-offs
 
@@ -144,6 +149,12 @@ grows, the natural step is a `Channel<T>` with a `BackgroundService`, or a broke
 **One transaction per batch, isolated per event.** The whole batch commits once, but each event is saved inside its
 own EF Core savepoint, so a database error on one event is rolled back alone while the rest still commit. If the final
 commit fails, the request fails with a 500 and nothing is applied; retrying is safe because processing is idempotent.
+
+**Concurrent batches.** Applying an event reads the entity and then writes it. SQLite serializes writers, so two
+batches never interleave here. For a server database, `LatestVersion` and `LastEventTimestamp` are optimistic
+concurrency tokens: every applied event moves one of them forward, so a batch that loaded an older state gets that
+event reported as `Failed` (and retried by the CMS) instead of overwriting a newer event. The admin override is a single
+`UPDATE` of its own column, so it never conflicts with ingestion and is never lost to it.
 
 **Separate read and write contexts.** `WriteDbContext` handles ingestion and the admin override and creates the schema.
 `ReadDbContext` serves the API: it does not track entities and refuses to save. Setting `ConnectionStrings:ReadOnly`
@@ -189,7 +200,7 @@ src/CmsEventService.Api
   OpenApi/        OpenAPI document description
 tests/CmsEventService.Tests
   Unit/           validator, domain rules, credential and options validation
-  Integration/    event processing on SQLite, Basic auth, roles, read API, paging, read/write split
+  Integration/    event processing on SQLite, Basic auth, roles, read API, paging, read/write split, concurrency
 docs/openapi.json
 ```
 
@@ -212,5 +223,5 @@ with `UPDATE_OPENAPI=1 dotnet test --filter OpenApiDocumentTests` (on Windows Po
 - Accounts live in configuration. A real system would use hashed credentials or an identity provider, HTTPS
   enforcement (HSTS) and rate limiting on failed logins.
 - Only the latest version of each entity is stored; there is no event or version history.
-- SQLite allows one writer at a time. Concurrent batches queue behind each other, which is fine at this scale; a
+- SQLite allows one writer at a time. Concurrent batches queue behind each other (see "Concurrent batches"), which is fine at this scale; a
   server database would be the next step.

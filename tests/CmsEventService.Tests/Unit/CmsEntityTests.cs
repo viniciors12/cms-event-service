@@ -42,10 +42,9 @@ public class CmsEntityTests
     }
 
     [Fact]
-    public void ApplyVersion_replaces_cms_state_but_keeps_the_admin_override()
+    public void ApplyVersion_replaces_cms_state()
     {
         var entity = Stored(1, T1);
-        entity.SetDisabledByAdmin(true);
 
         entity.ApplyVersion(2, """{"v":2}""", isPublished: false, T2, T2);
 
@@ -53,18 +52,17 @@ public class CmsEntityTests
         Assert.Equal("""{"v":2}""", entity.Payload);
         Assert.False(entity.IsPublished);
         Assert.Equal(T2, entity.LastEventTimestamp);
-        Assert.True(entity.IsDisabledByAdmin);
+        Assert.False(entity.IsDisabledByAdmin);
     }
 
+    // The admin-disabled cases need the override, which only the store writes; see ConcurrencyTests
+    // and EntitiesEndpointTests.
     [Theory]
-    [InlineData(true, false, true)]
-    [InlineData(true, true, false)]
-    [InlineData(false, false, false)]
-    [InlineData(false, true, false)]
-    public void Users_only_see_entities_that_are_published_and_not_disabled(bool published, bool disabled, bool visible)
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void Users_only_see_published_entities(bool published, bool visible)
     {
         var entity = Stored(1, T1, published);
-        entity.SetDisabledByAdmin(disabled);
 
         Assert.Equal(visible, CmsEntity.IsVisibleToUsers.Compile()(entity));
     }

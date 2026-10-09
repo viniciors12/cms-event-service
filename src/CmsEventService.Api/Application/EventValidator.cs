@@ -16,11 +16,15 @@ public static partial class EventValidator
     /// <summary>Allowed entity ids. Also published in the OpenAPI document.</summary>
     public const string IdRegex = "^[A-Za-z0-9._:-]{1,100}$";
 
+    /// <summary>How far ahead of this service's clock an event timestamp may be.</summary>
+    public static readonly TimeSpan MaxClockSkew = TimeSpan.FromMinutes(5);
+
     [GeneratedRegex(IdRegex)]
     private static partial Regex IdPattern();
 
     /// <summary>Validates and normalizes a raw event; returns false with the reason when it is invalid.</summary>
-    public static bool TryParse(JsonElement raw, out ParsedEvent? parsed, out string? error)
+    /// <param name="now">Current time, used to reject timestamps in the future.</param>
+    public static bool TryParse(JsonElement raw, DateTimeOffset now, out ParsedEvent? parsed, out string? error)
     {
         parsed = null;
 
@@ -40,10 +44,12 @@ public static partial class EventValidator
         if (!IdPattern().IsMatch(id))
             return Fail("'id' must be 1-100 characters of letters, digits, '.', '_', ':' or '-'", out error);
 
-        if (!TryGetString(raw, "timestamp", out var timestampText) ||
-            !DateTimeOffset.TryParse(timestampText, CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var timestamp))
+        if (!TryGetTimestamp(raw, out var timestamp))
             return Fail("'timestamp' is required and must be an ISO-8601 date", out error);
+
+        // A future timestamp would make every later event for the entity look stale, freezing it for good.
+        if (timestamp > now + MaxClockSkew)
+            return Fail("'timestamp' is in the future", out error);
 
         if (type == EventType.Delete)
         {
@@ -104,6 +110,19 @@ public static partial class EventValidator
 
         value = string.Empty;
         return false;
+    }
+
+    // TryGetDateTimeOffset enforces ISO-8601 but reads a value without an offset as server-local time;
+    // parsing again with AssumeUniversal treats that case as UTC, whatever the server's time zone.
+    private static bool TryGetTimestamp(JsonElement element, out DateTimeOffset timestamp)
+    {
+        timestamp = default;
+
+        return element.TryGetProperty("timestamp", out var property) &&
+            property.ValueKind == JsonValueKind.String &&
+            property.TryGetDateTimeOffset(out _) &&
+            DateTimeOffset.TryParse(property.GetString(), CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out timestamp);
     }
 
     private static bool Fail(string message, out string? error)

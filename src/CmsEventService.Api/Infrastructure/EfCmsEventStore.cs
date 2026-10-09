@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 using CmsEventService.Api.Application;
@@ -43,6 +44,16 @@ public sealed class EfCmsEventStore(WriteDbContext db) : ICmsEventStore
 
     /// <inheritdoc />
     public void DiscardChanges() => db.ChangeTracker.Clear();
+
+    /// <inheritdoc />
+    public async Task<bool> SetDisabledByAdminAsync(string id, bool disabled, CancellationToken ct)
+    {
+        var updated = await db.Entities
+            .Where(e => e.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.IsDisabledByAdmin, disabled), ct);
+
+        return updated > 0;
+    }
 
     private sealed class EfBatchScope(IDbContextTransaction transaction) : IBatchScope
     {

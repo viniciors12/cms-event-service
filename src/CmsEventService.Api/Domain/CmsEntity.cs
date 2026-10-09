@@ -41,7 +41,10 @@ public class CmsEntity
     /// <summary>False after an unPublish event: data is kept but hidden from regular users.</summary>
     public bool IsPublished { get; private set; }
 
-    /// <summary>Local admin override that hides the entity from regular users.</summary>
+    /// <summary>
+    /// Local admin override that hides the entity from regular users. Written by the store with a direct
+    /// update of this column only; nothing in the entity changes it.
+    /// </summary>
     public bool IsDisabledByAdmin { get; private set; }
 
     /// <summary>CMS timestamp of the last event applied; used to discard out-of-order events.</summary>
@@ -72,7 +75,4 @@ public class CmsEntity
         LastEventTimestamp = eventTimestamp;
         UpdatedAt = now;
     }
-
-    /// <summary>Sets or clears the admin override.</summary>
-    public void SetDisabledByAdmin(bool disabled) => IsDisabledByAdmin = disabled;
 }

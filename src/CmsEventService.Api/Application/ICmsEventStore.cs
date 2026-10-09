@@ -37,6 +37,12 @@ public interface ICmsEventStore
 
     /// <summary>Drops every staged change, so a failed event cannot leak into the next one.</summary>
     void DiscardChanges();
+
+    /// <summary>
+    /// Sets or clears the admin override at once (not staged), touching nothing else, so it never
+    /// conflicts with a concurrent CMS event. Returns false when the entity does not exist.
+    /// </summary>
+    Task<bool> SetDisabledByAdminAsync(string id, bool disabled, CancellationToken ct);
 }
 
 /// <summary>A unit of work spanning a whole batch. Disposing without committing discards everything.</summary>

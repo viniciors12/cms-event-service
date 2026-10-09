@@ -554,7 +554,7 @@
           },
           "timestamp": {
             "type": "string",
-            "description": "When the event happened in the CMS (ISO-8601).",
+            "description": "When the event happened in the CMS (ISO-8601; UTC when no offset is given). Rejected when more than 5 minutes ahead of the server clock.",
             "format": "date-time"
           }
         },

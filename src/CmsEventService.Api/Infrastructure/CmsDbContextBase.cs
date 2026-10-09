@@ -21,6 +21,12 @@ public abstract class CmsDbContextBase(DbContextOptions options) : DbContext(opt
             e.HasKey(x => x.Id);
             e.Property(x => x.Id).HasMaxLength(100);
             e.Property(x => x.Payload).IsRequired();
+
+            // Optimistic concurrency: every applied event moves the version or the timestamp forward, so a
+            // writer that loaded an older state fails (and the CMS retries) instead of overwriting a newer
+            // event. SQLite already serializes writers; this protects a server database with concurrent batches.
+            e.Property(x => x.LatestVersion).IsConcurrencyToken();
+            e.Property(x => x.LastEventTimestamp).IsConcurrencyToken();
             e.HasIndex(x => new { x.IsPublished, x.IsDisabledByAdmin, x.Id });
         });
 

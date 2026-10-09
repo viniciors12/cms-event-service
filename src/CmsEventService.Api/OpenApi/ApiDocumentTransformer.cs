@@ -97,7 +97,8 @@ public sealed class ApiDocumentTransformer : IOpenApiDocumentTransformer
                     Description = $"Required for publish, add, update and unPublish; up to {EventValidator.MaxPayloadLength} characters. " +
                         "An unPublish carries the payload of the version being unpublished."
                 },
-                ["timestamp"] = new() { Type = "string", Format = "date-time", Description = "When the event happened in the CMS (ISO-8601)." }
+                ["timestamp"] = new() { Type = "string", Format = "date-time", Description = "When the event happened in the CMS (ISO-8601; UTC when no offset is given). " +
+                    $"Rejected when more than {EventValidator.MaxClockSkew.TotalMinutes} minutes ahead of the server clock." }
             }
         };
         document.Components.Schemas["CmsEvent"] = eventSchema;
