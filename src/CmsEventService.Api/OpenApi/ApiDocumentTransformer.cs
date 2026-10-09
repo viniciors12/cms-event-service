@@ -39,8 +39,9 @@ public sealed class ApiDocumentTransformer : IOpenApiDocumentTransformer
             Description = Description
         };
 
-        // Fixed so the committed document does not depend on the host that generated it.
-        document.Servers = [new OpenApiServer { Url = "https://localhost:7024", Description = "Local development" }];
+        // Relative, so Swagger UI calls whichever host served it (http or https profile) and the
+        // committed document does not depend on the host that generated it.
+        document.Servers = [new OpenApiServer { Url = "/", Description = "The host serving this document" }];
 
         // Lets Swagger UI offer the "Authorize" button; every endpoint requires Basic credentials.
         document.Components ??= new OpenApiComponents();
