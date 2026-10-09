@@ -1,8 +1,9 @@
-using CmsEventService.Api.Application;
-using CmsEventService.Api.Auth;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
+
+using CmsEventService.Api.Application;
+using CmsEventService.Api.Auth;
 
 namespace CmsEventService.Api.OpenApi;
 
@@ -28,6 +29,7 @@ public sealed class ApiDocumentTransformer : IOpenApiDocumentTransformer
         events do not undo it.
         """;
 
+    /// <inheritdoc />
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken ct)
     {
         document.Info = new OpenApiInfo
@@ -80,7 +82,8 @@ public sealed class ApiDocumentTransformer : IOpenApiDocumentTransformer
                     Type = "string",
                     Description = "Case-insensitive. add and update are treated as publish.",
                     Enum = new[] { "publish", "add", "update", "unPublish", "delete" }
-                        .Select(v => (IOpenApiAny)new OpenApiString(v)).ToList()
+                        .Select(v => (IOpenApiAny)new OpenApiString(v))
+                        .ToList()
                 },
                 ["id"] = new() { Type = "string", Pattern = EventValidator.IdRegex, Description = "Entity id in the CMS." },
                 ["version"] = new()

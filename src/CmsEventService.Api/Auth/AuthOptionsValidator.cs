@@ -5,9 +5,12 @@ namespace CmsEventService.Api.Auth;
 /// <summary>Fails startup when the configured accounts are unusable or break the assessment's credential rules.</summary>
 public sealed class AuthOptionsValidator : IValidateOptions<AuthOptions>
 {
+    /// <summary>Shortest allowed CMS username.</summary>
     public const int CmsUsernameMinLength = 10;
+    /// <summary>Longest allowed CMS username.</summary>
     public const int CmsUsernameMaxLength = 20;
 
+    /// <inheritdoc />
     public ValidateOptionsResult Validate(string? name, AuthOptions options)
     {
         var errors = new List<string>();
@@ -36,7 +39,9 @@ public sealed class AuthOptionsValidator : IValidateOptions<AuthOptions>
         }
 
         // The CMS and the API consumers must be different accounts.
-        var duplicated = options.Users.Select(u => u.Username).Append(options.Cms.Username)
+        var duplicated = options.Users
+            .Select(u => u.Username)
+            .Append(options.Cms.Username)
             .GroupBy(u => u, StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Count() > 1)
             .Select(g => g.Key);

@@ -1,11 +1,13 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Encodings.Web;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
 namespace CmsEventService.Api.Auth;
 
+/// <summary>Authenticates requests that carry HTTP Basic credentials.</summary>
 public sealed class BasicAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory loggerFactory,
@@ -13,10 +15,12 @@ public sealed class BasicAuthenticationHandler(
     CredentialValidator validator)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, loggerFactory, encoder)
 {
+    /// <summary>Name of the authentication scheme.</summary>
     public const string SchemeName = "Basic";
 
     private const int MaxHeaderLength = 1024;
 
+    /// <inheritdoc />
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         // No credentials is not a failure: endpoints that need them will challenge.
@@ -38,6 +42,7 @@ public sealed class BasicAuthenticationHandler(
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal, SchemeName)));
     }
 
+    /// <inheritdoc />
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
         Response.Headers.WWWAuthenticate = $"{SchemeName} realm=\"CmsEventService\", charset=\"UTF-8\"";

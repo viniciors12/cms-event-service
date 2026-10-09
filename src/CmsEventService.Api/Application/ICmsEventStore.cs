@@ -14,18 +14,25 @@ public interface ICmsEventStore
     /// </summary>
     Task<IBatchScope> BeginBatchAsync(CancellationToken ct);
 
+    /// <summary>Loads an entity, or returns null when it is not stored.</summary>
     Task<CmsEntity?> FindEntityAsync(string id, CancellationToken ct);
 
+    /// <summary>Loads the tombstone left by a delete, or returns null.</summary>
     Task<DeletedEntity?> FindTombstoneAsync(string id, CancellationToken ct);
 
+    /// <summary>Stages a new entity.</summary>
     void AddEntity(CmsEntity entity);
 
+    /// <summary>Stages the removal of an entity.</summary>
     void RemoveEntity(CmsEntity entity);
 
+    /// <summary>Stages a new tombstone.</summary>
     void AddTombstone(DeletedEntity tombstone);
 
+    /// <summary>Stages the removal of a tombstone.</summary>
     void RemoveTombstone(DeletedEntity tombstone);
 
+    /// <summary>Writes the staged changes.</summary>
     Task SaveChangesAsync(CancellationToken ct);
 
     /// <summary>Drops every staged change, so a failed event cannot leak into the next one.</summary>
@@ -35,5 +42,6 @@ public interface ICmsEventStore
 /// <summary>A unit of work spanning a whole batch. Disposing without committing discards everything.</summary>
 public interface IBatchScope : IAsyncDisposable
 {
+    /// <summary>Commits everything saved during the batch.</summary>
     Task CommitAsync(CancellationToken ct);
 }

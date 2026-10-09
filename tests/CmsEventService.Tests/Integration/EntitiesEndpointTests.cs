@@ -43,7 +43,10 @@ public sealed class EntitiesEndpointTests(ApiFactory factory) : IClassFixture<Ap
     }
 
     private static List<string> Ids(JsonElement page) =>
-        page.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetString()!).ToList();
+        page.GetProperty("items")
+            .EnumerateArray()
+            .Select(i => i.GetProperty("id").GetString()!)
+            .ToList();
 
     private async Task<List<string>> ListIds(HttpClient client, string query = "?pageSize=100")
     {

@@ -11,6 +11,7 @@ public class CmsEntity
     // Required by EF Core.
     private CmsEntity() { }
 
+    /// <summary>Creates an entity from the first event received for it.</summary>
     public CmsEntity(string id, int version, string payload, bool isPublished, DateTimeOffset eventTimestamp, DateTimeOffset now)
     {
         Id = id;
@@ -28,8 +29,10 @@ public class CmsEntity
     public static readonly Expression<Func<CmsEntity, bool>> IsVisibleToUsers =
         e => e.IsPublished && !e.IsDisabledByAdmin;
 
+    /// <summary>Entity id in the CMS.</summary>
     public string Id { get; private set; } = null!;
 
+    /// <summary>Latest version applied.</summary>
     public int LatestVersion { get; private set; }
 
     /// <summary>Validated JSON object, stored as text.</summary>
@@ -38,11 +41,13 @@ public class CmsEntity
     /// <summary>False after an unPublish event: data is kept but hidden from regular users.</summary>
     public bool IsPublished { get; private set; }
 
+    /// <summary>Local admin override that hides the entity from regular users.</summary>
     public bool IsDisabledByAdmin { get; private set; }
 
     /// <summary>CMS timestamp of the last event applied; used to discard out-of-order events.</summary>
     public DateTimeOffset LastEventTimestamp { get; private set; }
 
+    /// <summary>When this service last changed the entity.</summary>
     public DateTimeOffset UpdatedAt { get; private set; }
 
     /// <summary>
@@ -52,6 +57,7 @@ public class CmsEntity
     public bool IsStale(int version, DateTimeOffset eventTimestamp) =>
         version < LatestVersion || (version == LatestVersion && eventTimestamp < LastEventTimestamp);
 
+    /// <summary>True when a delete is older than the stored state.</summary>
     public bool IsDeleteStale(DateTimeOffset eventTimestamp) => eventTimestamp < LastEventTimestamp;
 
     /// <summary>
@@ -67,5 +73,6 @@ public class CmsEntity
         UpdatedAt = now;
     }
 
+    /// <summary>Sets or clears the admin override.</summary>
     public void SetDisabledByAdmin(bool disabled) => IsDisabledByAdmin = disabled;
 }

@@ -1,16 +1,20 @@
 using System.Text.Json;
-using CmsEventService.Api.Application;
-using CmsEventService.Api.Auth;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using CmsEventService.Api.Application;
+using CmsEventService.Api.Auth;
+
 namespace CmsEventService.Api.Controllers;
 
+/// <summary>Receives webhook events from the CMS.</summary>
 [ApiController]
 [Route("cms/events")]
 [Authorize(Policy = Policies.CmsIngestion)]
 public class CmsEventsController(CmsEventProcessor processor) : ControllerBase
 {
+    /// <summary>Most events accepted in one request.</summary>
     public const int MaxBatchSize = 1000;
 
     // Well above a realistic batch, far below MaxBatchSize x MaxPayloadLength.

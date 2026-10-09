@@ -1,12 +1,14 @@
+using Microsoft.EntityFrameworkCore;
+
 using CmsEventService.Api.Application;
 using CmsEventService.Api.Domain;
-using Microsoft.EntityFrameworkCore;
 
 namespace CmsEventService.Api.Infrastructure;
 
 /// <summary>Reads through <see cref="ReadDbContext"/>, which never tracks entities.</summary>
 public sealed class EfEntityReader(ReadDbContext db) : IEntityReader
 {
+    /// <inheritdoc />
     public async Task<PagedResult<CmsEntity>> ListAsync(bool includeHidden, int page, int pageSize, CancellationToken ct)
     {
         var query = Visible(db.Entities, includeHidden);
@@ -23,6 +25,7 @@ public sealed class EfEntityReader(ReadDbContext db) : IEntityReader
         return new PagedResult<CmsEntity>(items, page, pageSize, total);
     }
 
+    /// <inheritdoc />
     public Task<CmsEntity?> FindAsync(string id, bool includeHidden, CancellationToken ct) =>
         Visible(db.Entities, includeHidden).FirstOrDefaultAsync(e => e.Id == id, ct);
 

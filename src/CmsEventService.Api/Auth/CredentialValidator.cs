@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+
 using Microsoft.Extensions.Options;
 
 namespace CmsEventService.Api.Auth;
@@ -10,6 +11,7 @@ public sealed class CredentialValidator
 {
     private readonly List<Account> _accounts;
 
+    /// <summary>Builds the validator from the configured accounts.</summary>
     public CredentialValidator(IOptions<AuthOptions> options)
     {
         var auth = options.Value;

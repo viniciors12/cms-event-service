@@ -173,7 +173,7 @@ roles, so the CMS cannot read data and users cannot inject events.
 
 Structured logs for every event with its index, type, entity id, version, outcome and reason: processed events and
 ignored ones at Information, rejected ones at Warning, failures at Error (with the exception). Each batch also logs its
-totals and elapsed time. Failed authentication is logged as a warning without the credentials. Console scopes are
+totals. Failed authentication is logged as a warning without the credentials. Console scopes are
 enabled so logs can be correlated by trace id, and EF SQL logging is kept at Warning.
 
 ## Project layout

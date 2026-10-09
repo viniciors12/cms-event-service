@@ -1,8 +1,10 @@
 using System.Text.Json;
+
 using CmsEventService.Api.Domain;
 
 namespace CmsEventService.Api.Contracts;
 
+/// <summary>An entity as returned by the API.</summary>
 public sealed record EntityResponse(
     string Id,
     int Version,
@@ -11,6 +13,7 @@ public sealed record EntityResponse(
     bool IsDisabledByAdmin,
     DateTimeOffset UpdatedAt)
 {
+    /// <summary>Maps a stored entity to its API representation.</summary>
     public static EntityResponse From(CmsEntity entity)
     {
         // Payload is validated JSON, so it is returned as a nested object rather than an escaped string.

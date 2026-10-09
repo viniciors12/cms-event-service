@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
+
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
 using CmsEventService.Api.Application;
 using CmsEventService.Api.Auth;
 using CmsEventService.Api.Contracts;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 
 namespace CmsEventService.Api.Controllers;
 
@@ -18,11 +20,15 @@ namespace CmsEventService.Api.Controllers;
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
 public class EntitiesController(IEntityReader reader, EntityAdminService admin) : ControllerBase
 {
+    /// <summary>Page size used when the caller does not choose one.</summary>
     public const int DefaultPageSize = 20;
+
+    /// <summary>Largest page a caller may request.</summary>
     public const int MaxPageSize = 100;
 
     private bool CanSeeHidden => User.IsInRole(Roles.Admin);
 
+    /// <summary>Lists entities one page at a time.</summary>
     [HttpGet]
     [EndpointSummary("List entities")]
     [EndpointDescription("Paged list ordered by id. Users see published, enabled entities; admins also see unpublished " +
@@ -37,6 +43,7 @@ public class EntitiesController(IEntityReader reader, EntityAdminService admin) 
         return result.Map(EntityResponse.From);
     }
 
+    /// <summary>Returns one entity, or 404 when it does not exist or is hidden from the caller.</summary>
     [HttpGet("{id}")]
     [EndpointSummary("Get one entity")]
     [EndpointDescription("Hidden entities are reported as 404 to regular users so their existence is not revealed.")]

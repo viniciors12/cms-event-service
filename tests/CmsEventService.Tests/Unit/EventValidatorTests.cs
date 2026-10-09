@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 using CmsEventService.Api.Application;
 
 namespace CmsEventService.Tests.Unit;

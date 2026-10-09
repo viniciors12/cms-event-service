@@ -9,12 +9,14 @@ public class DeletedEntity
     // Required by EF Core.
     private DeletedEntity() { }
 
+    /// <summary>Records that the entity was deleted at the given CMS time.</summary>
     public DeletedEntity(string id, DateTimeOffset deletedAt)
     {
         Id = id;
         DeletedAt = deletedAt;
     }
 
+    /// <summary>Id of the deleted entity.</summary>
     public string Id { get; private set; } = null!;
 
     /// <summary>CMS timestamp of the latest delete event.</summary>
@@ -23,6 +25,7 @@ public class DeletedEntity
     /// <summary>True when an event is not newer than the delete, so it must not bring the entity back.</summary>
     public bool Covers(DateTimeOffset eventTimestamp) => eventTimestamp <= DeletedAt;
 
+    /// <summary>Moves the delete time forward; an older time is ignored.</summary>
     public void RecordDelete(DateTimeOffset eventTimestamp)
     {
         if (eventTimestamp > DeletedAt)

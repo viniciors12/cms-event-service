@@ -1,10 +1,12 @@
 using System.Text.Json;
-using CmsEventService.Api.Application;
-using CmsEventService.Api.Domain;
-using CmsEventService.Api.Infrastructure;
+
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using CmsEventService.Api.Application;
+using CmsEventService.Api.Domain;
+using CmsEventService.Api.Infrastructure;
 
 namespace CmsEventService.Tests.Integration;
 
@@ -37,7 +39,9 @@ public sealed class EventProcessingTests : IDisposable
 
     private async Task<IReadOnlyList<EventResult>> Send(params string[] events)
     {
-        var elements = events.Select(e => JsonDocument.Parse(e).RootElement.Clone()).ToList();
+        var elements = events
+            .Select(e => JsonDocument.Parse(e).RootElement.Clone())
+            .ToList();
         var batch = await _processor.ProcessBatchAsync(elements);
         _db.ChangeTracker.Clear();
         return batch.Results;
@@ -253,7 +257,9 @@ public sealed class EventProcessingTests : IDisposable
             Publish("A", 2, "2024-01-02T00:00:00Z"),
             Publish("A", 1, "2024-01-03T00:00:00Z"),
             """{ "type": "bogus", "id": "B", "timestamp": "2024-01-01T00:00:00Z" }"""
-        }.Select(e => JsonDocument.Parse(e).RootElement.Clone()).ToList();
+        }
+        .Select(e => JsonDocument.Parse(e).RootElement.Clone())
+        .ToList();
 
         var batch = await _processor.ProcessBatchAsync(elements);
 

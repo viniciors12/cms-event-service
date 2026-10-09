@@ -2,14 +2,16 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using CmsEventService.Api.Application;
-using CmsEventService.Api.Domain;
-using CmsEventService.Api.Infrastructure;
+
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+
+using CmsEventService.Api.Application;
+using CmsEventService.Api.Domain;
+using CmsEventService.Api.Infrastructure;
 
 namespace CmsEventService.Tests.Integration;
 
@@ -97,12 +99,18 @@ public sealed class ReadWriteSplitTests : IDisposable
         {
             await using var db = new WriteDbContext(options);
             var processor = new CmsEventProcessor(new EfCmsEventStore(db), TimeProvider.System, NullLogger<CmsEventProcessor>.Instance);
-            var events = Enumerable.Range(0, 100).Select(i => JsonDocument.Parse(
-                $$"""{ "type": "publish", "id": "{{prefix}}-{{i}}", "version": 1, "payload": {}, "timestamp": "2024-01-01T00:00:00Z" }""").RootElement.Clone()).ToList();
+            var events = Enumerable
+                .Range(0, 100)
+                .Select(i => JsonDocument.Parse(
+                    $$"""{ "type": "publish", "id": "{{prefix}}-{{i}}", "version": 1, "payload": {}, "timestamp": "2024-01-01T00:00:00Z" }""").RootElement.Clone())
+                .ToList();
             return await processor.ProcessBatchAsync(events);
         }
 
-        var results = await Task.WhenAll(Enumerable.Range(0, 4).Select(n => Task.Run(() => RunBatch($"b{n}"))));
+        var batches = Enumerable
+            .Range(0, 4)
+            .Select(n => Task.Run(() => RunBatch($"b{n}")));
+        var results = await Task.WhenAll(batches);
 
         Assert.All(results, r => Assert.Equal((100, 0), (r.Applied, r.Failed)));
         await using var check = new WriteDbContext(options);

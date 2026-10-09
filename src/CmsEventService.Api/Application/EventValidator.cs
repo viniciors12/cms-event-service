@@ -10,6 +10,7 @@ namespace CmsEventService.Api.Application;
 /// </summary>
 public static partial class EventValidator
 {
+    /// <summary>Largest accepted payload, in characters.</summary>
     public const int MaxPayloadLength = 256 * 1024;
 
     /// <summary>Allowed entity ids. Also published in the OpenAPI document.</summary>
@@ -18,6 +19,7 @@ public static partial class EventValidator
     [GeneratedRegex(IdRegex)]
     private static partial Regex IdPattern();
 
+    /// <summary>Validates and normalizes a raw event; returns false with the reason when it is invalid.</summary>
     public static bool TryParse(JsonElement raw, out ParsedEvent? parsed, out string? error)
     {
         parsed = null;

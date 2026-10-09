@@ -5,10 +5,11 @@ namespace CmsEventService.Api.Application;
 /// <summary>Read-only access to the stored entities. Returned entities must not be modified.</summary>
 public interface IEntityReader
 {
-    /// <param name="includeHidden">
-    /// False returns only what regular users may see; true also returns unpublished and admin-disabled entities.
-    /// </param>
+    /// <summary>
+    /// Returns one page of entities ordered by id; <c>includeHidden</c> adds the unpublished and admin-disabled ones.
+    /// </summary>
     Task<PagedResult<CmsEntity>> ListAsync(bool includeHidden, int page, int pageSize, CancellationToken ct);
 
+    /// <summary>Returns an entity, or null when it does not exist or is hidden from the caller.</summary>
     Task<CmsEntity?> FindAsync(string id, bool includeHidden, CancellationToken ct);
 }

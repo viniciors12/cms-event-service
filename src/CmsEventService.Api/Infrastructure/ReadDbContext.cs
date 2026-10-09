@@ -8,8 +8,10 @@ namespace CmsEventService.Api.Infrastructure;
 /// </summary>
 public sealed class ReadDbContext(DbContextOptions<ReadDbContext> options) : CmsDbContextBase(options)
 {
+    /// <inheritdoc />
     public override int SaveChanges(bool acceptAllChangesOnSuccess) => throw ReadOnly();
 
+    /// <inheritdoc />
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default) =>
         throw ReadOnly();
 

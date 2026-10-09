@@ -1,12 +1,14 @@
 using System.Text.Json.Serialization;
-using CmsEventService.Api.Application;
-using CmsEventService.Api.Auth;
-using CmsEventService.Api.Infrastructure;
-using CmsEventService.Api.OpenApi;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+
+using CmsEventService.Api.Application;
+using CmsEventService.Api.Auth;
+using CmsEventService.Api.Infrastructure;
+using CmsEventService.Api.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,4 +83,5 @@ app.MapControllers();
 app.Run();
 
 // Exposed so integration tests can use WebApplicationFactory<Program>.
+/// <summary>Application entry point type, public so integration tests can host the app.</summary>
 public partial class Program;

@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using System.Text.Json;
+
 using CmsEventService.Api.Domain;
 
 namespace CmsEventService.Api.Application;
@@ -11,6 +11,7 @@ namespace CmsEventService.Api.Application;
 /// </summary>
 public sealed class CmsEventProcessor(ICmsEventStore store, TimeProvider clock, ILogger<CmsEventProcessor> logger)
 {
+    /// <summary>Applies a batch of CMS events in one transaction and reports the outcome of each event.</summary>
     public async Task<BatchResult> ProcessBatchAsync(IReadOnlyList<JsonElement> events, CancellationToken ct = default)
     {
         var results = new List<EventResult>(events.Count);

@@ -1,6 +1,8 @@
 using System.Security.Claims;
-using CmsEventService.Api.Auth;
+
 using Microsoft.Extensions.Options;
+
+using CmsEventService.Api.Auth;
 
 namespace CmsEventService.Tests.Unit;
 
